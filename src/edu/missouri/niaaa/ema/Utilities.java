@@ -6,6 +6,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.math.BigInteger;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.security.Key;
 import java.security.KeyFactory;
 import java.security.PublicKey;
@@ -43,8 +45,6 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.location.Location;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.util.Base64;
 import android.util.Log;
@@ -62,12 +62,8 @@ import edu.missouri.niaaa.ema.location.LocationUtilities;
 
 public class Utilities {
 
-	/* REcording */
-	public final static String ACTION_RECORD = "edu.missouri.niaaa.ema.ACTION_RECORD";
-	public final static String LINEBREAK = System.getProperty("line.separator");
-	public final static String SPLIT = "---------------------------------------";
-	public static final String RECORDING_CATEGORY = "Recording";
-	public static String curBatt = "nan";
+	/* Nick moved the recording items and put them in the monitor package */
+	
 /*	survey type*/
 	public final static String SV_FILE = "survey_file";
 	public final static String SV_NAME = "survey_name";
@@ -319,6 +315,12 @@ public class Utilities {
 
 	//shared values
 	public static PublicKey publicKey = null;
+	
+	
+	
+	
+	
+	
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	//static Functions()                                                                                          //
@@ -1316,42 +1318,5 @@ public class Utilities {
 
 	}
 
-	/* Recording */
-	public static String getConnectionState(Context ctx) {
-		ConnectivityManager manager = (ConnectivityManager) ctx.getApplicationContext()
-				.getSystemService(Context.CONNECTIVITY_SERVICE);
-		if (manager == null) {
-			return "Hardware Problem";
-		}
-		NetworkInfo networkInfo = manager.getActiveNetworkInfo();
-		if (networkInfo == null) {
-			return "Not Connected";
-		}
-		if (networkInfo.isAvailable()) {
-			return "Connected";
-		}
-		return "Not Connected";
-
-	}
-
-	public static void scheduleRecording(Context context) {
-		Intent i = new Intent(Utilities.ACTION_RECORD);
-		context.sendBroadcast(i);
-	}
-
-	public static String getCurrentTimeStamp()
-	{
-		Calendar cal = Calendar.getInstance();
-		cal.setTimeZone(TimeZone.getTimeZone("US/Central"));
-		return String.valueOf(cal.getTime());
-	}
-
-	public static String getFileDate()
-	{
-		Calendar c = Calendar.getInstance();
-		SimpleDateFormat curFormater = new SimpleDateFormat("MMMMM_dd");
-		String dateObj = curFormater.format(c.getTime());
-		return dateObj;
-	}
-
+	/*Nick Removed the recording items and put them in the monitor package */
 }

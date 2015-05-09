@@ -5,7 +5,7 @@
     android:versionName="3.1.0" >
 
     <uses-sdk
-        android:minSdkVersion="15"
+        android:minSdkVersion="19"
         android:targetSdkVersion="19" />
 
     <uses-permission android:name="android.permission.WAKE_LOCK" />
@@ -17,6 +17,7 @@
     <uses-permission android:name="com.google.android.gms.permission.ACTIVITY_RECOGNITION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.BLUETOOTH" />
 
     <application
         android:allowBackup="true"
@@ -74,24 +75,39 @@
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
->
         </receiver>
-         <!-- Recording -->
-        <service android:name=".services.RecordingService"></service>
+         <!-- Start Recording -->
+        <service android:name="edu.missouri.niaaa.ema.monitor.RecordingService"></service>
           <receiver 
-            android:name=".ShutdownReceiver">
+            android:name="edu.missouri.niaaa.ema.monitor.StartupReceiver">
+            <intent-filter>
+            <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+          <receiver 
+            android:name="edu.missouri.niaaa.ema.monitor.ShutdownReceiver">
             <intent-filter>
             <action android:name="android.intent.action.ACTION_SHUTDOWN" />
             </intent-filter>
         </receiver>
         <receiver
-            android:name=".RecordingReceiver"
+            android:name="edu.missouri.niaaa.ema.monitor.RecordingReceiver"
             android:exported="false" >
             <intent-filter>
-                <action android:name="edu.missouri.niaaa.ema.ACTION_RECORD" />
+                <action android:name="edu.missouri.niaaa.ema.monitor.ACTION_RECORD" />
             </intent-filter>
         </receiver>
-        <!-- Recording -->
+        <receiver 
+            android:name="edu.missouri.niaaa.ema.monitor.MonitorBluetoothReceiver">
+            <intent-filter>
+                <action android:name="android.bluetooth.device.action.ACL_CONNECTED" />
+                <action android:name="android.bluetooth.device.action.ACL_DISCONNECTED" />
+                <action android:name="android.bluetooth.device.action.ACL_DISCONNECT_REQUESTED" />
+                <action android:name="android.bluetooth.device.action.BOND_STATE_CHANGED" />
+                <action android:name="android.bluetooth.adapter.action.STATE_CHANGED" />
+            </intent-filter>
+        </receiver>
+        <!-- End Recording -->
         <receiver
             android:name=".DaemonReceiver"
             android:exported="false" >

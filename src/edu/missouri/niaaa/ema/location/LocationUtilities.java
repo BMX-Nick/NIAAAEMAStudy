@@ -9,6 +9,7 @@ import android.location.LocationManager;
 import android.os.Bundle;
 import android.util.Log;
 import edu.missouri.niaaa.ema.Utilities;
+import edu.missouri.niaaa.ema.monitor.MonitorUtilities;
 
 public class LocationUtilities {
 
@@ -57,13 +58,21 @@ public class LocationUtilities {
 		public void onLocationChanged(Location location) {
 
 			if (location != null) {
-
+				MonitorUtilities.activeGPS = "true";
+				MonitorUtilities.gpsProvider = location.getProvider();
+				MonitorUtilities.gpsAccuracy = String.valueOf(location.getAccuracy());
+				
 				Log.d("test gps", "gps location is not null " + location.getLatitude() + "," + location.getLongitude() + "," +
 						location.getAccuracy() + "," + location.getProvider());
+				
 				if (location.getAccuracy() <= 35)
 				{
+					MonitorUtilities.gpsAccuracyGood = "false";
+					
 					if (isBetterLocation(location, mCurrentLocation))
 					{
+						MonitorUtilities.betterGpsLocation = "true";
+						
 						mCurrentLocation = location;
 						try {
 							Log.d("test gps", "gps location");
@@ -73,7 +82,19 @@ public class LocationUtilities {
 							e.printStackTrace();
 						}
 					}
+					else{
+						MonitorUtilities.betterGpsLocation = "false";
+					}
 				}
+				else {
+					MonitorUtilities.gpsAccuracyGood = "true";
+				}
+			}
+			else{
+				MonitorUtilities.activeGPS = "false";
+				MonitorUtilities.gpsProvider = "unknown";
+				MonitorUtilities.gpsAccuracy = "unknown";
+				MonitorUtilities.betterGpsLocation = "unknown";
 			}
 		}
 

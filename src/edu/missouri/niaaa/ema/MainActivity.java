@@ -21,6 +21,7 @@ import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.protocol.HTTP;
 import org.apache.http.util.EntityUtils;
 
+
 import android.app.Activity;
 import android.app.AlarmManager;
 import android.app.AlertDialog;
@@ -37,6 +38,7 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.media.AudioManager;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.StrictMode;
 import android.os.Vibrator;
@@ -59,10 +61,13 @@ import edu.missouri.niaaa.ema.httpsFactory.CustomerSocketFactory;
 import edu.missouri.niaaa.ema.httpsFactory.WebClientDevWrapper;
 import edu.missouri.niaaa.ema.location.LocationUtilities;
 import edu.missouri.niaaa.ema.logger.Logger;
-import edu.missouri.niaaa.ema.services.RecordingService;
+import edu.missouri.niaaa.ema.monitor.MonitorUtilities;
+import edu.missouri.niaaa.ema.monitor.RecordingService;
 
 
 public class MainActivity extends Activity {
+	boolean start;
+	
 	private final static Logger log = Logger.getLogger(MainActivity.class);
 	static String TAG = "Main activity~~~~~~~~";
 
@@ -82,14 +87,21 @@ public class MainActivity extends Activity {
 	InputMethodManager imm;
 	SharedPreferences shp;
 	Editor editor;
-	public static String ID;
+	String ID;
 	String PWD;
+	
+	//for the database
+//	public static DatabaseHelper myDB;
+//	private File databasePath = new File("/sdcard/EMA_Database");
+//	private File databaseFile = new File("/sdcard/EMA_Database/ema.db");
+//	public static Context mContext;
 
 
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 
+		
 		setSharedValue();
 		super.onCreate(savedInstanceState);
 		//threadpolicy, maybe changed later
@@ -105,12 +117,31 @@ public class MainActivity extends Activity {
 		IntentFilter suspensionIntent = new IntentFilter(Utilities.BD_ACTION_SUSPENSION);
 		this.registerReceiver(suspensionReceiver, suspensionIntent);
 
+		start = false;
+		
+//		if (!databasePath.exists())
+//			databasePath.mkdirs();
+//		if (!databaseFile.exists()) {
+//			try {
+//				databaseFile.createNewFile();
+//			} catch (IOException e) {
+//				e.printStackTrace();
+//			}
+//		}
+//		
+//		mContext = this;
+//		
+//		myDB = new DatabaseHelper(mContext);
+		
+		
 
         ////startSService();
         //
         //check if device is assigned with an ID
         shp = getSharedPreferences(Utilities.SP_LOGIN, Context.MODE_PRIVATE);
         ID = shp.getString(Utilities.SP_KEY_LOGIN_USERID, "");
+        MonitorUtilities.ID = ID;
+        Log.d(TAG, "On create monitor utilties ID: "+MonitorUtilities.ID);
         PWD = shp.getString(Utilities.SP_KEY_LOGIN_USERPWD, "");
         editor = shp.edit();
 
@@ -143,7 +174,7 @@ public class MainActivity extends Activity {
 			// RECORDING
 			Intent i = new Intent(MainActivity.this, RecordingService.class);
 			startService(i);
-			Utilities.scheduleRecording(MainActivity.this);
+			MonitorUtilities.scheduleRecording(MainActivity.this);
         }
 	}
 
@@ -223,10 +254,11 @@ public class MainActivity extends Activity {
 
  		        			Utilities.scheduleAll(MainActivity.this);
  		        			Utilities.scheduleDaemon(MainActivity.this);
+ 		        			
 							// RECORDING
 							Intent i = new Intent(MainActivity.this, RecordingService.class);
 							startService(i);
-							Utilities.scheduleRecording(MainActivity.this);
+							MonitorUtilities.scheduleRecording(MainActivity.this);
  		        		}else{
  		        			//imm.toggleSoftInput(0, InputMethodManager.RESULT_SHOWN);
  		        			//imm.toggleSoftInput(InputMethodManager.HIDE_IMPLICIT_ONLY, 0);
@@ -797,15 +829,39 @@ public class MainActivity extends Activity {
 	}
 
 	@Override
-	protected void onStart() {
-		// TODO Auto-generated method stub
+	protected void onStart() {	
 		super.onStart();
 		Utilities.Log_sys(TAG, "onStart");
 	}
 
 	@Override
 	protected void onResume() {
-		// TODO Auto-generated method stub
+		/* Nick added this on april 6nd 2015 for slu app
+		 * this will determine if the user PAUSES the app
+		 * and will write it to the file and send it to the server 
+		 */
+		/*String nick = null;
+		String whichOne = null;
+		if(!start){
+			nick = "STARTED";
+			whichOne = "onStart";
+		}
+		else{
+			nick = "RESUMED";
+			whichOne = "onResume";
+		}*/
+		if( !(ID.equals("")) ){
+			MonitorUtilities.ID = ID;
+			Log.d(TAG, "on resume Monitor Utilities ID: "+MonitorUtilities.ID);
+		}
+		if(  (!(start)) && (!(ID.equals("")))  ){
+			String message = "User has just STARTED the app!";
+			String whichOne = "onStart";
+			writeAndSend(message, whichOne);
+			start = true;
+		}
+		
+		
 		super.onResume();
 		Utilities.Log_sys(TAG, "onResume");
 		setSuspensionText();
@@ -813,7 +869,20 @@ public class MainActivity extends Activity {
 
 	@Override
 	protected void onPause() {
-		// TODO Auto-generated method stub
+		/* Nick added this on april 6nd 2015 for slu app
+		 * this will determine if the user PAUSES the app
+		 * and will write it to the file and send it to the server 
+		 */
+		/*if(!ID.equals("")){
+			String fileName = MonitorUtilities.RECORDING_CATEGORY + "." + ID + "." + MonitorUtilities.getFileDate();
+			String toWrite = MonitorUtilities.getCurrentTimeStamp() + MonitorUtilities.LINEBREAK + "User has just PAUSED the app! (Switch to another app)"
+					+ MonitorUtilities.LINEBREAK + MonitorUtilities.SPLIT;
+			String whichOne = "onPause";
+			
+			writeAndSend(fileName, toWrite, whichOne);
+		}
+		*/
+		
 		super.onPause();
 		Utilities.Log_sys(TAG, "onPause");
 	}
@@ -827,25 +896,94 @@ public class MainActivity extends Activity {
 
 	@Override
 	protected void onDestroy() {
-		// TODO Auto-generated method stub
+		/* Nick added this on april 2nd 2015 for slu app
+		 * this will determine if the user closes the app
+		 * and will write it to the file and send it to the server 
+		 */
+		if(!ID.equals("")){
+			String message = "User has just CLOSED the app!";
+			String whichOne = "onDestroy";
+			writeAndSend(message, whichOne );
+		}
+		
 		super.onDestroy();
 		Utilities.Log_sys(TAG, "onDestroy");
-
 		this.unregisterReceiver(suspensionReceiver);
 	}
-
-
-
-
-
 
 	@Override
 	public void onBackPressed() {
 		// TODO Auto-generated method stub
 		super.onBackPressed();
+	}	
+	private void writeAndSend(String data, String whichOne){
+		String fileName = MonitorUtilities.RECORDING_CATEGORY + "." + ID + "." + MonitorUtilities.getFileDate();
+		String toWrite = MonitorUtilities.getCurrentTimeStamp() + MonitorUtilities.LINEBREAK + data
+				+ MonitorUtilities.LINEBREAK + MonitorUtilities.SPLIT;
+		try {
+			Utilities.writeToFile(fileName + ".txt", toWrite);
+			Utilities.Log_sys(TAG, whichOne + " writing info to file");
+		} catch (IOException e) {
+			Utilities.Log_sys(TAG, whichOne + " not write to file!");
+			e.printStackTrace();
+		}
+
+		String fileHead = getFileHead(fileName);
+		// Log.d("RecordingReceiver", fileHead);
+		
+		String toSend = fileHead + toWrite;
+		String enformattedData = null;
+		
+		try {
+			enformattedData = Utilities.encryption(toSend);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		TransmitData transmitData = new TransmitData();
+		if (MonitorUtilities.getConnectionState(MainActivity.this).equals("Connected")) {
+			transmitData.execute(enformattedData, whichOne);
+		}
 	}
+	private String getFileHead(String fileName) {
+		StringBuilder prefix_sb = new StringBuilder(Utilities.PREFIX_LEN);
+		prefix_sb.append(fileName);
 
+		for (int i = fileName.length(); i <= Utilities.PREFIX_LEN; i++) {
+			prefix_sb.append(" ");
+		}
+		return prefix_sb.toString();
+	}
+	private class TransmitData extends AsyncTask<String, Void, Boolean> {
+		@Override
+		protected Boolean doInBackground(String... strings) {
+			DefaultHttpClient client = (DefaultHttpClient) WebClientDevWrapper.getSpecialKeyStoreClient();
+			String data = strings[0];
+			String whichOne = strings[1];
+			// String fileName = strings[0];
+			// String dataToSend = strings[1];
 
-
-
+			HttpPost request = new HttpPost(Utilities.UPLOAD_ADDRESS);
+			List<NameValuePair> params = new ArrayList<NameValuePair>();
+			params.add(new BasicNameValuePair("data", data));
+			// // file_name
+			// params.add(new BasicNameValuePair("file_name", fileName));
+			// // data
+			// params.add(new BasicNameValuePair("data", dataToSend));
+			try {
+				request.setEntity(new UrlEncodedFormEntity(params, HTTP.UTF_8));
+				HttpResponse response = client.execute(request);
+				Log.d("Sensor Data Point Info", String.valueOf(response.getStatusLine().getStatusCode()));
+				if(response.getStatusLine().getStatusCode() == 200){
+					Utilities.Log_sys(TAG, whichOne + " send info to server");
+				}
+				return true;
+			} catch (Exception e)
+			{
+				Utilities.Log_sys(TAG, whichOne + " did not send info to server!!");
+				e.printStackTrace();
+				return false;
+			}
+		}
+	}
 }
